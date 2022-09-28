@@ -30,7 +30,7 @@ impl LinkOutputCheckStep for Step {
     }
 
     fn get_content(&self, profile: &Profile, path: &str) -> Option<(&[&str], &[&str])> {
-        match (profile, path.replace("\\", "/").as_str()) {
+        match (profile, path.replace('\\', "/").as_str()) {
             (Profile::Release, "examples/intrinsics") => Some((
                 &[
                     "tail call signext i32 @llvm.nvvm.read.ptx.sreg.ntid.y()",

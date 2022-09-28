@@ -1,6 +1,9 @@
 use std::marker::PhantomData;
 
-use llvm_sys::core::*;
+use llvm_sys::core::{
+    LLVMGetFirstBasicBlock, LLVMGetFirstFunction, LLVMGetFirstGlobal, LLVMGetFirstInstruction,
+    LLVMGetNextBasicBlock, LLVMGetNextFunction, LLVMGetNextGlobal, LLVMGetNextInstruction,
+};
 use llvm_sys::prelude::*;
 
 pub trait FunctionsIterableModule {
@@ -19,21 +22,25 @@ pub trait InstructionsIterableBlock {
     fn instructions_iter(&self) -> InstructionIter;
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct FunctionIter<'a> {
     module: PhantomData<&'a LLVMModuleRef>,
     next: Option<LLVMValueRef>,
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct GlobalIter<'a> {
     module: PhantomData<&'a LLVMModuleRef>,
     next: Option<LLVMValueRef>,
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct BlockIter<'a> {
     function: PhantomData<&'a LLVMValueRef>,
     next: Option<LLVMBasicBlockRef>,
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct InstructionIter<'a> {
     block: PhantomData<&'a LLVMBasicBlockRef>,
     next: Option<LLVMValueRef>,

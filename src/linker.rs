@@ -5,21 +5,37 @@ use std::path::{Path, PathBuf};
 use std::ptr;
 use std::str;
 
-use llvm_sys::bit_reader::*;
-use llvm_sys::bit_writer::*;
-use llvm_sys::core::*;
-use llvm_sys::debuginfo::*;
-use llvm_sys::linker::*;
+use llvm_sys::bit_reader::LLVMParseBitcodeInContext2;
+use llvm_sys::bit_writer::LLVMWriteBitcodeToFile;
+use llvm_sys::core::{
+    LLVMContextCreate, LLVMContextDispose, LLVMCreateMemoryBufferWithMemoryRange,
+    LLVMCreatePassManager, LLVMDisposeMemoryBuffer, LLVMDisposeModule, LLVMDisposePassManager,
+    LLVMGetTarget, LLVMModuleCreateWithNameInContext, LLVMPrintModuleToFile, LLVMRunPassManager,
+};
+use llvm_sys::debuginfo::LLVMStripModuleDebugInfo;
+use llvm_sys::linker::LLVMLinkModules2;
 use llvm_sys::prelude::*;
-use llvm_sys::target::*;
-use llvm_sys::target_machine::*;
-use llvm_sys::transforms::{ipo::*, pass_manager_builder::*};
+use llvm_sys::target::{
+    LLVMInitializeNVPTXAsmPrinter, LLVMInitializeNVPTXTarget, LLVMInitializeNVPTXTargetInfo,
+    LLVMInitializeNVPTXTargetMC,
+};
+use llvm_sys::target_machine::{
+    LLVMCodeGenFileType, LLVMCodeGenOptLevel, LLVMCodeModel, LLVMCreateTargetMachine,
+    LLVMDisposeTargetMachine, LLVMGetTargetFromTriple, LLVMRelocMode, LLVMTargetMachineEmitToFile,
+};
+use llvm_sys::transforms::{
+    ipo::LLVMAddGlobalDCEPass,
+    pass_manager_builder::{
+        LLVMPassManagerBuilderCreate, LLVMPassManagerBuilderDispose,
+        LLVMPassManagerBuilderPopulateLTOPassManager, LLVMPassManagerBuilderSetOptLevel,
+    },
+};
 
 use ar::Archive;
 use failure::{bail, Error, ResultExt};
-use log::*;
+use log::{debug, info, warn};
 
-use crate::error::*;
+use crate::error::LinkerError;
 use crate::llvm::{Message, PassRunner};
 use crate::passes::{FindExternalReferencesPass, InternalizePass};
 use crate::session::{OptLevel, Output, Session};
@@ -31,8 +47,9 @@ pub struct Linker {
 }
 
 impl Linker {
+    #[must_use]
     pub fn new(session: Session) -> Self {
-        let module_name = CString::new("nvptx-module").unwrap();
+        let module_name = unsafe { CString::new("nvptx-module").unwrap_unchecked() };
         let context = unsafe { LLVMContextCreate() };
 
         Linker {
@@ -61,7 +78,7 @@ impl Linker {
                 Output::Bitcode => self.emit_bc().context("Unable to emit LLVM bitcode")?,
 
                 Output::IntermediateRepresentation => {
-                    self.emit_ir().context("Unable to emit LLVM IR code")?
+                    self.emit_ir().context("Unable to emit LLVM IR code")?;
                 }
             }
         }
@@ -93,7 +110,7 @@ impl Linker {
             while let Some(Ok(mut item)) = archive.next_entry() {
                 let name = PathBuf::from(str::from_utf8(item.header().identifier()).unwrap());
 
-                if self.is_rlib_item_linkable(&name) {
+                if Self::is_rlib_item_linkable(&name) {
                     debug!("  - linking archive item: {:?}", name);
 
                     let mut bitcode_bytes = vec![];
@@ -107,7 +124,7 @@ impl Linker {
         Ok(())
     }
 
-    fn is_rlib_item_linkable(&self, name: &Path) -> bool {
+    fn is_rlib_item_linkable(name: &Path) -> bool {
         name.extension().unwrap() == "o"
     }
 
@@ -207,7 +224,7 @@ impl Linker {
             bail!("More than 1 CUDA architecture is not yet supported with PTX output.");
         }
 
-        let arch = match self.session.ptx_archs.iter().next() {
+        let arch = match self.session.ptx_archs.get(0) {
             Some(arch) => arch.as_str(),
             None => self.session.ptx_fallback_arch.as_str(),
         };
@@ -278,11 +295,12 @@ impl Linker {
         Ok(output_path)
     }
 
+    #[allow(clippy::unnecessary_wraps, clippy::needless_pass_by_value)]
     fn link_bitcode_contents(&self, module: LLVMModuleRef, buffer: Vec<u8>) -> Result<(), Error> {
         unsafe {
-            let buffer_name = CString::new("sm_20").unwrap();
+            let buffer_name = CString::new("sm_20").unwrap_unchecked();
             let buffer = LLVMCreateMemoryBufferWithMemoryRange(
-                buffer.as_ptr() as *const i8,
+                buffer.as_ptr().cast(),
                 buffer.len() as usize,
                 buffer_name.as_ptr(),
                 0,

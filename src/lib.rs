@@ -1,5 +1,6 @@
+#![deny(clippy::pedantic)]
+#![allow(clippy::missing_errors_doc)]
 #![deny(warnings)]
-#![warn(clippy::all)]
 
 #[cfg(feature = "llvm-proxy")]
 extern crate rustc_llvm_proxy;

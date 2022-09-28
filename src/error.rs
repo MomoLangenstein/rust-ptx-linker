@@ -1,5 +1,6 @@
 use failure::Fail;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Fail)]
 pub enum LinkerError {
     #[fail(display = "No output path is specified")]

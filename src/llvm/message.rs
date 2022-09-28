@@ -39,11 +39,11 @@ impl Drop for Message {
 
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if !self.is_empty() {
+        if self.is_empty() {
+            write!(f, "(empty)")
+        } else {
             let contents = unsafe { CStr::from_ptr(self.ptr).to_str().unwrap() };
             write!(f, "{}", contents)
-        } else {
-            write!(f, "(empty)")
         }
     }
 }

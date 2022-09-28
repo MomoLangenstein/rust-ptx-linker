@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use std::ffi::CStr;
 
-use llvm_sys::core::*;
+use llvm_sys::core::{LLVMGetValueKind, LLVMGetValueName2, LLVMIsDeclaration};
 use llvm_sys::prelude::*;
 use llvm_sys::LLVMValueKind;
 

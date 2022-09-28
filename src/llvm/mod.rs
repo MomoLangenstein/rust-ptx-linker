@@ -1,4 +1,4 @@
-use llvm_sys::core::*;
+use llvm_sys::core::{LLVMGetCalledValue, LLVMGetInstructionOpcode};
 use llvm_sys::prelude::*;
 use llvm_sys::LLVMOpcode;
 

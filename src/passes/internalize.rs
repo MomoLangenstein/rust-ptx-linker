@@ -1,15 +1,19 @@
 use std::ffi::CStr;
 
-use llvm_sys::core::*;
+use llvm_sys::core::{
+    LLVMGetFunctionCallConv, LLVMGetValueName2, LLVMIsAGlobalVariable, LLVMSetLinkage,
+    LLVMSetVisibility,
+};
 use llvm_sys::prelude::*;
-use llvm_sys::*;
-use log::*;
+use llvm_sys::{LLVMLinkage, LLVMVisibility};
+use log::debug;
 
 use super::external_references::SYSCALLS;
 use crate::llvm::{FunctionVisitor, GlobalValueVisitor};
 
 const PTX_KERNEL_CALL_CONV: u32 = 71;
 
+#[allow(clippy::module_name_repetitions)]
 pub struct InternalizePass;
 
 impl InternalizePass {

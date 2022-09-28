@@ -9,7 +9,7 @@ description = "NVPTX modules linker"
 repository = "https://github.com/denzp/rust-ptx-linker"
 categories = ["development-tools", "development-tools::build-utils", "external-ffi-bindings"]
 keywords = ["llvm", "cuda", "nvptx", "linker"]
-edition = "2018"
+edition = "2021"
 
 [badges]
 appveyor = { repository = "denzp/rust-ptx-linker", branch = "master", service = "github" }
@@ -25,12 +25,12 @@ llvm-proxy = [
 ]
 
 [dependencies]
-ar = "0.8"
-clap = "2.33"
+ar = "0.9"
+clap = "2.34" # TODO: update
 either = "1.5"
-env_logger = "0.7"
-failure = "0.1"
-llvm-sys = "80"
+env_logger = "0.9"
+failure = "0.1" # TODO: replace
+llvm-sys = "140" # TODO: update
 log = "0.4"
 
 [dependencies.rustc-llvm-proxy]

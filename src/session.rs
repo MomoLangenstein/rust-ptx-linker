@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use log::*;
+use log::{info, warn};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum OptLevel {
     None,
     LTO,
@@ -14,7 +14,7 @@ impl Default for OptLevel {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Output {
     PTXAssembly,
     IntermediateRepresentation,
@@ -22,7 +22,7 @@ pub enum Output {
 }
 
 // TODO: make the fields private
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct Session {
     pub output: Option<PathBuf>,
     pub include_rlibs: Vec<PathBuf>,
@@ -44,7 +44,7 @@ impl Session {
         if extension != "ptx" {
             warn!(
                 "The output extension is not '.ptx'. Consider changing from '.{}' to '.ptx'",
-                extension.to_str().unwrap()
+                extension.to_string_lossy()
             );
         }
 
@@ -65,8 +65,8 @@ impl Session {
     ///
     /// **Note**, for now `*.crate.metadata.o` modules are omitted.
     pub fn link_bitcode(&mut self, path: &Path) {
-        if self.is_metadata_bitcode(path) {
-            info!("Ignoring metadata bitcode: {:?}", path)
+        if Self::is_metadata_bitcode(path) {
+            info!("Ignoring metadata bitcode: {:?}", path);
         } else {
             self.include_bitcode_modules.push(path.to_path_buf());
         }
@@ -92,7 +92,7 @@ impl Session {
         self.ptx_fallback_arch = arch.into();
     }
 
-    fn is_metadata_bitcode(&self, path: &Path) -> bool {
+    fn is_metadata_bitcode(path: &Path) -> bool {
         path.to_str().unwrap().ends_with(".crate.metadata.o")
     }
 }
