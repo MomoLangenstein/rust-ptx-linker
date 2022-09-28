@@ -27,7 +27,7 @@ use llvm_sys::transforms::{
     ipo::LLVMAddGlobalDCEPass,
     pass_manager_builder::{
         LLVMPassManagerBuilderCreate, LLVMPassManagerBuilderDispose,
-        LLVMPassManagerBuilderPopulateLTOPassManager, LLVMPassManagerBuilderSetOptLevel,
+        LLVMPassManagerBuilderSetOptLevel,
     },
 };
 
@@ -155,18 +155,12 @@ impl Linker {
                 OptLevel::None => {
                     info!("Linking without Link Time Optimisation");
                 }
-
                 OptLevel::LTO => {
-                    info!("Linking with Link Time Optimisation");
+                    warn!("Linking with Link Time Optimisation is currently unsupported");
+
                     let pass_manager_builder = LLVMPassManagerBuilderCreate();
 
                     LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, 3);
-                    LLVMPassManagerBuilderPopulateLTOPassManager(
-                        pass_manager_builder,
-                        pass_manager,
-                        1,
-                        1,
-                    );
 
                     LLVMPassManagerBuilderDispose(pass_manager_builder);
                 }
