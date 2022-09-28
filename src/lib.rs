@@ -22,7 +22,7 @@ pub fn linker_entrypoint(session: session::Session) -> ! {
         Err(error) => {
             error!("Unable to link modules");
 
-            for cause in error.iter_chain() {
+            for cause in error.chain() {
                 error!("  caused by: {}", cause.to_string());
             }
 

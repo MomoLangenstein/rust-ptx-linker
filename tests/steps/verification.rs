@@ -14,7 +14,7 @@ impl StepFactory {
     }
 
     pub fn is_runnable() -> bool {
-        if let Ok(output) = Command::new("ptxas").args(&["-V"]).output() {
+        if let Ok(output) = Command::new("ptxas").args(["-V"]).output() {
             output.status.success()
         } else {
             false

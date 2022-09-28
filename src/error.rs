@@ -1,14 +1,12 @@
-use failure::Fail;
-
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Fail)]
+#[derive(Debug, thiserror::Error)]
 pub enum LinkerError {
-    #[fail(display = "No output path is specified")]
+    #[error("No output path is specified")]
     NoOutputPathError,
 
-    #[fail(display = "Expected path, got `{}`", _0)]
+    #[error("Expected path, got `{0}`")]
     PathArgumentError(String),
 
-    #[fail(display = "Undefined references: {:?}", _0)]
+    #[error("Undefined references: {0:?}")]
     UndefinedReferences(Vec<String>),
 }

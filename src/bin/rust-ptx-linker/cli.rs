@@ -7,7 +7,7 @@ pub fn current_session() -> Session {
     parse_session(get_app().get_matches())
 }
 
-fn get_app() -> App<'static, 'static> {
+fn get_app() -> App<'static> {
     App::new("rust-ptx-linker")
         .version(crate_version!())
         .author(crate_authors!())
@@ -33,7 +33,7 @@ fn get_app() -> App<'static, 'static> {
             },
             {
                 Arg::with_name("output")
-                    .short("o")
+                    .short('o')
                     .help("Output PTX assembly path")
                     .display_order(2)
                     .takes_value(true)
@@ -41,7 +41,7 @@ fn get_app() -> App<'static, 'static> {
             },
             {
                 Arg::with_name("input_dir")
-                    .short("L")
+                    .short('L')
                     .help("Input files directory")
                     .takes_value(true)
                     .value_name("PATH")
@@ -50,10 +50,10 @@ fn get_app() -> App<'static, 'static> {
             },
             {
                 Arg::with_name("optimisation")
-                    .short("O")
+                    .short('O')
                     .help("Optimisation level")
                     .takes_value(true)
-                    .possible_values(&["lto"])
+                    .possible_values(["lto"])
                     .value_name("level")
             },
             {
@@ -70,7 +70,7 @@ fn get_app() -> App<'static, 'static> {
             },
             {
                 Arg::with_name("arch")
-                    .short("a")
+                    .short('a')
                     .long("arch")
                     .help("Target CUDA architectures")
                     .takes_value(true)
@@ -80,11 +80,11 @@ fn get_app() -> App<'static, 'static> {
             },
             {
                 Arg::with_name("emit")
-                    .short("e")
+                    .short('e')
                     .long("emit")
                     .help("Output kind")
                     .takes_value(true)
-                    .possible_values(&["asm", "ptx", "llvm-ir", "llvm-bc"])
+                    .possible_values(["asm", "ptx", "llvm-ir", "llvm-bc"])
                     .default_value("asm")
                     .multiple(true)
                     .number_of_values(1)
@@ -93,7 +93,7 @@ fn get_app() -> App<'static, 'static> {
         ])
 }
 
-fn parse_session(matches: ArgMatches<'static>) -> Session {
+fn parse_session(matches: ArgMatches) -> Session {
     let mut session = Session::default();
 
     if let Some(inputs) = matches.values_of("bitcode") {

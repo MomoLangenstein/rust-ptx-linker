@@ -25,20 +25,19 @@ llvm-proxy = [
 ]
 
 [dependencies]
+anyhow = "1.0"
 ar = "0.9"
-clap = "2.34" # TODO: update
+clap = { version = "3.2", features = ["cargo"] }
 either = "1.5"
 env_logger = "0.9"
-failure = "0.1" # TODO: replace
 llvm-sys = "140" # TODO: update
 log = "0.4"
-
-[dependencies.rustc-llvm-proxy]
-version = "0.2"
-optional = true
+rustc-llvm-proxy = { version = "0.2", optional = true }
+thiserror = "1.0"
 
 [dev-dependencies]
-crate-compile-test = "0.2"
+crate-compile-test = "0.2" # TODO: update
+failure = "0.1"
 
 [[test]]
 name = "linker"

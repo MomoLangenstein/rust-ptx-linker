@@ -31,8 +31,8 @@ use llvm_sys::transforms::{
     },
 };
 
+use anyhow::{bail, Context, Error};
 use ar::Archive;
-use failure::{bail, Error, ResultExt};
 use log::{debug, info, warn};
 
 use crate::error::LinkerError;
@@ -90,7 +90,7 @@ impl Linker {
         for module_path in &self.session.include_bitcode_modules {
             debug!("Linking bitcode: {:?}", module_path);
 
-            let mut bitcode_file = BufReader::new(File::open(&module_path)?);
+            let mut bitcode_file = BufReader::new(File::open(module_path)?);
             let mut bitcode_bytes = vec![];
 
             bitcode_file.read_to_end(&mut bitcode_bytes)?;
