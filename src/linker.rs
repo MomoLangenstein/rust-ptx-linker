@@ -23,12 +23,11 @@ use llvm_sys::target_machine::{
     LLVMCodeGenFileType, LLVMCodeGenOptLevel, LLVMCodeModel, LLVMCreateTargetMachine,
     LLVMDisposeTargetMachine, LLVMGetTargetFromTriple, LLVMRelocMode, LLVMTargetMachineEmitToFile,
 };
-use llvm_sys::transforms::{
-    ipo::LLVMAddGlobalDCEPass,
-    pass_manager_builder::{
-        LLVMPassManagerBuilderCreate, LLVMPassManagerBuilderDispose,
-        LLVMPassManagerBuilderSetOptLevel,
-    },
+use llvm_sys::transforms::ipo::{
+    LLVMAddAlwaysInlinerPass, LLVMAddCalledValuePropagationPass, LLVMAddConstantMergePass,
+    LLVMAddDeadArgEliminationPass, LLVMAddFunctionAttrsPass, LLVMAddFunctionInliningPass,
+    LLVMAddGlobalDCEPass, LLVMAddGlobalOptimizerPass, LLVMAddIPSCCPPass, LLVMAddPruneEHPass,
+    LLVMAddStripDeadPrototypesPass,
 };
 
 use anyhow::{bail, Context, Error};
@@ -156,13 +155,19 @@ impl Linker {
                     info!("Linking without Link Time Optimisation");
                 }
                 OptLevel::LTO => {
-                    warn!("Linking with Link Time Optimisation is currently unsupported");
+                    info!("Linking with Link Time Optimisation");
 
-                    let pass_manager_builder = LLVMPassManagerBuilderCreate();
-
-                    LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, 3);
-
-                    LLVMPassManagerBuilderDispose(pass_manager_builder);
+                    // LLVMAddStripSymbolsPass is not used as is strips constant names
+                    LLVMAddAlwaysInlinerPass(pass_manager);
+                    LLVMAddCalledValuePropagationPass(pass_manager);
+                    LLVMAddConstantMergePass(pass_manager);
+                    LLVMAddDeadArgEliminationPass(pass_manager);
+                    LLVMAddFunctionAttrsPass(pass_manager);
+                    LLVMAddFunctionInliningPass(pass_manager);
+                    LLVMAddGlobalOptimizerPass(pass_manager);
+                    LLVMAddIPSCCPPass(pass_manager);
+                    LLVMAddPruneEHPass(pass_manager);
+                    LLVMAddStripDeadPrototypesPass(pass_manager);
                 }
             }
 
