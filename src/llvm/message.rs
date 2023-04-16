@@ -43,7 +43,7 @@ impl fmt::Display for Message {
             write!(f, "(empty)")
         } else {
             let contents = unsafe { CStr::from_ptr(self.ptr).to_str().unwrap() };
-            write!(f, "{}", contents)
+            write!(f, "{contents}")
         }
     }
 }

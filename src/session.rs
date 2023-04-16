@@ -2,16 +2,11 @@ use std::path::{Path, PathBuf};
 
 use log::{info, warn};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub enum OptLevel {
+    #[default]
     None,
     LTO,
-}
-
-impl Default for OptLevel {
-    fn default() -> Self {
-        OptLevel::None
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

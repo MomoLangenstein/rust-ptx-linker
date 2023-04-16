@@ -26,7 +26,7 @@ use llvm_sys::target_machine::{
 use llvm_sys::transforms::ipo::{
     LLVMAddAlwaysInlinerPass, LLVMAddCalledValuePropagationPass, LLVMAddConstantMergePass,
     LLVMAddDeadArgEliminationPass, LLVMAddFunctionAttrsPass, LLVMAddFunctionInliningPass,
-    LLVMAddGlobalDCEPass, LLVMAddGlobalOptimizerPass, LLVMAddIPSCCPPass, LLVMAddPruneEHPass,
+    LLVMAddGlobalDCEPass, LLVMAddGlobalOptimizerPass, LLVMAddIPSCCPPass,
     LLVMAddStripDeadPrototypesPass,
 };
 
@@ -166,7 +166,6 @@ impl Linker {
                     LLVMAddFunctionInliningPass(pass_manager);
                     LLVMAddGlobalOptimizerPass(pass_manager);
                     LLVMAddIPSCCPPass(pass_manager);
-                    LLVMAddPruneEHPass(pass_manager);
                     LLVMAddStripDeadPrototypesPass(pass_manager);
                 }
             }
@@ -198,7 +197,7 @@ impl Linker {
 
             if !message.is_empty() {
                 // TODO(denzp): stderr?
-                println!("{}", message);
+                println!("{message}");
             }
         }
 
@@ -300,7 +299,7 @@ impl Linker {
             let buffer_name = CString::new("sm_20").unwrap_unchecked();
             let buffer = LLVMCreateMemoryBufferWithMemoryRange(
                 buffer.as_ptr().cast(),
-                buffer.len() as usize,
+                buffer.len(),
                 buffer_name.as_ptr(),
                 0,
             );

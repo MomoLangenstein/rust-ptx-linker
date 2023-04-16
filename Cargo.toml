@@ -29,8 +29,8 @@ anyhow = "1.0"
 ar = "0.9"
 clap = { version = "3.2", features = ["cargo"] }
 either = "1.5"
-env_logger = "0.9"
-llvm-sys = "150"
+env_logger = "0.10"
+llvm-sys = "160"
 log = "0.4"
 rustc-llvm-proxy = { version = "0.2", optional = true }
 thiserror = "1.0"
