@@ -23,12 +23,6 @@ use llvm_sys::target_machine::{
     LLVMCodeGenFileType, LLVMCodeGenOptLevel, LLVMCodeModel, LLVMCreateTargetMachine,
     LLVMDisposeTargetMachine, LLVMGetTargetFromTriple, LLVMRelocMode, LLVMTargetMachineEmitToFile,
 };
-use llvm_sys::transforms::ipo::{
-    LLVMAddAlwaysInlinerPass, LLVMAddCalledValuePropagationPass, LLVMAddConstantMergePass,
-    LLVMAddDeadArgEliminationPass, LLVMAddFunctionAttrsPass, LLVMAddFunctionInliningPass,
-    LLVMAddGlobalDCEPass, LLVMAddGlobalOptimizerPass, LLVMAddIPSCCPPass,
-    LLVMAddStripDeadPrototypesPass,
-};
 
 use anyhow::{bail, Context, Error};
 use ar::Archive;
@@ -155,23 +149,9 @@ impl Linker {
                     info!("Linking without Link Time Optimisation");
                 }
                 OptLevel::LTO => {
-                    info!("Linking with Link Time Optimisation");
-
-                    // LLVMAddStripSymbolsPass is not used as is strips constant names
-                    LLVMAddAlwaysInlinerPass(pass_manager);
-                    LLVMAddCalledValuePropagationPass(pass_manager);
-                    LLVMAddConstantMergePass(pass_manager);
-                    LLVMAddDeadArgEliminationPass(pass_manager);
-                    LLVMAddFunctionAttrsPass(pass_manager);
-                    LLVMAddFunctionInliningPass(pass_manager);
-                    LLVMAddGlobalOptimizerPass(pass_manager);
-                    LLVMAddIPSCCPPass(pass_manager);
-                    LLVMAddStripDeadPrototypesPass(pass_manager);
+                    warn!("Linking with Link Time Optimisation is not yet supported");
                 }
             }
-
-            // The pass is needed to perform cleanup after our internaliser.
-            LLVMAddGlobalDCEPass(pass_manager);
 
             // TODO(denzp): check the result
             LLVMRunPassManager(pass_manager, self.module);
@@ -222,7 +202,7 @@ impl Linker {
             bail!("More than 1 CUDA architecture is not yet supported with PTX output.");
         }
 
-        let arch = match self.session.ptx_archs.get(0) {
+        let arch = match self.session.ptx_archs.first() {
             Some(arch) => arch.as_str(),
             None => self.session.ptx_fallback_arch.as_str(),
         };
@@ -266,7 +246,7 @@ impl Linker {
                 LLVMTargetMachineEmitToFile(
                     target_machine,
                     self.module,
-                    path.as_ptr() as *mut _,
+                    path.as_ptr().cast_mut(),
                     LLVMCodeGenFileType::LLVMAssemblyFile,
                     message.as_mut_ptr(),
                 );

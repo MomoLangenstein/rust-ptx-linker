@@ -55,7 +55,7 @@ impl FunctionsIterableModule for LLVMModuleRef {
 impl<'a> FunctionIter<'a> {
     pub fn new(module: &'a LLVMModuleRef) -> Self {
         FunctionIter {
-            module: PhantomData::default(),
+            module: PhantomData::<&'a LLVMModuleRef>,
             next: Option::from_ptr(unsafe { LLVMGetFirstFunction(*module) }),
         }
     }
@@ -85,7 +85,7 @@ impl GlobalsIterableModule for LLVMModuleRef {
 impl<'a> GlobalIter<'a> {
     pub fn new(module: &'a LLVMModuleRef) -> Self {
         GlobalIter {
-            module: PhantomData::default(),
+            module: PhantomData::<&'a LLVMModuleRef>,
             next: Option::from_ptr(unsafe { LLVMGetFirstGlobal(*module) }),
         }
     }
@@ -115,7 +115,7 @@ impl BlocksIterableFunction for LLVMValueRef {
 impl<'a> BlockIter<'a> {
     pub fn new(function: &'a LLVMValueRef) -> Self {
         BlockIter {
-            function: PhantomData::default(),
+            function: PhantomData::<&'a LLVMValueRef>,
             next: Option::from_ptr(unsafe { LLVMGetFirstBasicBlock(*function) }),
         }
     }
@@ -145,7 +145,7 @@ impl InstructionsIterableBlock for LLVMBasicBlockRef {
 impl<'a> InstructionIter<'a> {
     pub fn new(block: &'a LLVMBasicBlockRef) -> Self {
         InstructionIter {
-            block: PhantomData::default(),
+            block: PhantomData::<&'a LLVMBasicBlockRef>,
             next: Option::from_ptr(unsafe { LLVMGetFirstInstruction(*block) }),
         }
     }

@@ -1,6 +1,5 @@
 #![deny(clippy::pedantic)]
 #![allow(clippy::missing_errors_doc)]
-#![deny(warnings)]
 
 #[cfg(feature = "llvm-proxy")]
 extern crate rustc_llvm_proxy;
@@ -17,8 +16,7 @@ pub fn linker_entrypoint(session: session::Session) -> ! {
     use log::error;
 
     std::process::exit(match Linker::new(session).link() {
-        Ok(_) => 0,
-
+        Ok(()) => 0,
         Err(error) => {
             error!("Unable to link modules");
 
