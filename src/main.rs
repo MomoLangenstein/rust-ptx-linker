@@ -68,7 +68,7 @@ fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let mut linker = Session::new(args.target, args.target_cpu, args.output);
+    let mut linker = Session::new(args.target, args.target_cpu, args.output)?;
 
     for rlib in args.whole_rlib {
         linker.link_rlib(rlib, true)?;

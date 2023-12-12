@@ -12,6 +12,8 @@ pub struct Session {
     symbols: Vec<String>,
     bitcode: Vec<PathBuf>,
 
+    version: String,
+
     // Output files
     link_path: PathBuf,
     opt_path: PathBuf,
@@ -20,21 +22,69 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(target: crate::Target, cpu: Option<String>, out_path: PathBuf) -> Self {
+    pub fn new(
+        target: crate::Target,
+        cpu: Option<String>,
+        out_path: PathBuf,
+    ) -> anyhow::Result<Self> {
         let link_path = out_path.with_extension("o");
         let opt_path = out_path.with_extension("optimized.o");
         let sym_path = out_path.with_extension("symbols.txt");
 
-        Session {
+        let version = if let Ok(version_output) = std::process::Command::new("llvm-link")
+            .arg("--version")
+            .output()
+        {
+            tracing::info!(
+                "using default llvm-link with version:\n{}",
+                String::from_utf8(version_output.stdout).unwrap(),
+            );
+
+            String::new()
+        } else {
+            let version_output = std::process::Command::new("rustc")
+                .arg("--version")
+                .arg("--verbose")
+                .output()?;
+            let version_output = String::from_utf8(version_output.stdout).unwrap();
+
+            let mut llvm_version = None;
+
+            for line in version_output.lines() {
+                if let Some(version) = str::strip_prefix(line, "LLVM version: ") {
+                    if let Some((version, _)) = version.split_once('.') {
+                        llvm_version = Some(String::from(version));
+                        break;
+                    }
+                }
+            }
+
+            let Some(llvm_version) = llvm_version else {
+                anyhow::bail!("unable to determine LLVM version from:\n{version_output}");
+            };
+
+            let version_output =
+                std::process::Command::new(format!("llvm-link-{llvm_version}")).output()?;
+
+            tracing::info!(
+                "using specific llvm-link-{llvm_version} with version:\n{}",
+                String::from_utf8(version_output.stdout).unwrap(),
+            );
+
+            format!("-{llvm_version}")
+        };
+
+        Ok(Session {
             target,
             cpu,
             symbols: Vec::new(),
             bitcode: Vec::new(),
+            version,
             link_path,
             opt_path,
             sym_path,
             out_path,
-        }
+        })
     }
 
     /// Link a rlib into a bitcode object and add it to the list of files ready
@@ -47,7 +97,7 @@ impl Session {
             output_file_link.display(),
         );
 
-        let link_output = std::process::Command::new("llvm-link")
+        let link_output = std::process::Command::new(format!("llvm-link{}", self.version))
             .arg(path.as_ref())
             .arg("-o")
             .arg(&output_file_link)
@@ -75,7 +125,7 @@ impl Session {
         keep_symbols: bool,
     ) -> anyhow::Result<()> {
         if keep_symbols {
-            let nm_output = std::process::Command::new("llvm-nm")
+            let nm_output = std::process::Command::new(format!("llvm-nm{}", self.version))
                 .arg("--extern-only")
                 .arg("--export-symbols")
                 .arg(path.as_ref())
@@ -122,7 +172,7 @@ impl Session {
             self.bitcode.len()
         );
 
-        let llvm_link_output = std::process::Command::new("llvm-link")
+        let llvm_link_output = std::process::Command::new(format!("llvm-link{}", self.version))
             .args(&self.bitcode)
             .arg("-o")
             .arg(&self.link_path)
@@ -181,7 +231,7 @@ impl Session {
         }
 
         tracing::info!("optimizing bitcode with passes: {}", passes);
-        let mut opt_cmd = std::process::Command::new("opt");
+        let mut opt_cmd = std::process::Command::new(format!("opt{}", self.version));
         opt_cmd
             .arg(&self.link_path)
             .arg("-o")
@@ -215,7 +265,7 @@ impl Session {
     ///
     /// Before this can be called `optimize` needs to be called
     fn compile(&mut self) -> anyhow::Result<()> {
-        let mut lcc_command = std::process::Command::new("llc");
+        let mut lcc_command = std::process::Command::new(format!("llc{}", self.version));
 
         if let Some(mcpu) = &self.cpu {
             lcc_command.arg("--mcpu").arg(mcpu);
