@@ -192,7 +192,7 @@ impl Session {
         Ok(())
     }
 
-    /// Optimize and compile to native format using `opt` and `llc`
+    /// Optimize using `opt`
     ///
     /// Before this can be called `link` needs to be called
     fn optimize(
@@ -200,6 +200,7 @@ impl Session {
         optimization: Optimization,
         mut internalize: bool,
         mut debug: bool,
+        mut inline: bool,
     ) -> anyhow::Result<()> {
         let mut passes = format!("default<{optimization}>");
 
@@ -218,16 +219,22 @@ impl Session {
             debug = false;
         }
 
+        if !inline && self.target == crate::Target::Nvptx64NvidiaCuda {
+            tracing::warn!("nvptx64 target detected - inlining all symbols");
+            inline = true;
+        }
+
         if internalize {
-            passes.push_str(
-                ",always-inline,called-value-propagation,constmerge,deadargelim,globalopt,ipsccp,\
-                 strip-dead-prototypes,internalize,globaldce",
-            );
+            passes.push_str(",internalize,globaldce");
             let symbol_file_content = self.symbols.iter().fold(String::new(), |s, x| s + x + "\n");
             std::fs::write(&self.sym_path, symbol_file_content).context(format!(
                 "Failed to write symbol file: {}",
                 self.sym_path.display()
             ))?;
+        }
+
+        if inline {
+            passes.push_str(",forceattrs,always-inline,gvn,globalopt,dse,globalopt");
         }
 
         tracing::info!("optimizing bitcode with passes: {}", passes);
@@ -244,6 +251,34 @@ impl Session {
 
         if !debug {
             opt_cmd.arg("--strip-debug");
+        }
+
+        if inline {
+            let nm_output = std::process::Command::new(format!("llvm-nm{}", self.version))
+                .arg("--format=just-symbols")
+                .arg("--defined-only")
+                .arg(&self.link_path)
+                .output()
+                .unwrap();
+
+            if !nm_output.status.success() {
+                tracing::error!(
+                    "llvm-nm returned with Exit status: {}\n stdout: {}\n stderr: {}",
+                    nm_output.status,
+                    String::from_utf8(nm_output.stdout).unwrap(),
+                    String::from_utf8(nm_output.stderr).unwrap(),
+                );
+                anyhow::bail!(
+                    "llvm-nm failed to return symbols from file {}",
+                    self.link_path.display()
+                );
+            }
+
+            let symbol_string = String::from_utf8(nm_output.stdout).unwrap();
+
+            for symbol in symbol_string.split_whitespace() {
+                opt_cmd.arg(format!("--force-attribute={symbol}:alwaysinline"));
+            }
         }
 
         let opt_output = opt_cmd.output().unwrap();
@@ -302,9 +337,10 @@ impl Session {
         optimization: crate::Optimization,
         internalize: bool,
         debug: bool,
+        inline: bool,
     ) -> anyhow::Result<()> {
         self.link()?;
-        self.optimize(optimization, internalize, debug)?;
+        self.optimize(optimization, internalize, debug, inline)?;
         self.compile()
     }
 }

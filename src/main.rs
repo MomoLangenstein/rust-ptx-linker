@@ -82,5 +82,5 @@ fn main() -> anyhow::Result<()> {
         linker.add_bitcode(bitcode, true)?;
     }
 
-    linker.lto(args.optimization, true, args.debug)
+    linker.lto(args.optimization, true, args.debug, true)
 }
