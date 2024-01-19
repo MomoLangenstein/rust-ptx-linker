@@ -233,10 +233,6 @@ impl Session {
             ))?;
         }
 
-        if inline {
-            passes.push_str(",forceattrs,always-inline,gvn,globalopt,dse,globalopt");
-        }
-
         tracing::info!("optimizing bitcode with passes: {}", passes);
         let mut opt_cmd = std::process::Command::new(format!("opt{}", self.version));
         opt_cmd
@@ -253,32 +249,56 @@ impl Session {
             opt_cmd.arg("--strip-debug");
         }
 
-        if inline {
-            let nm_output = std::process::Command::new(format!("llvm-nm{}", self.version))
-                .arg("--format=just-symbols")
-                .arg("--defined-only")
-                .arg(&self.link_path)
-                .output()
-                .unwrap();
+        let opt_output = opt_cmd.output().unwrap();
 
-            if !nm_output.status.success() {
-                tracing::error!(
-                    "llvm-nm returned with Exit status: {}\n stdout: {}\n stderr: {}",
-                    nm_output.status,
-                    String::from_utf8(nm_output.stdout).unwrap(),
-                    String::from_utf8(nm_output.stderr).unwrap(),
-                );
-                anyhow::bail!(
-                    "llvm-nm failed to return symbols from file {}",
-                    self.link_path.display()
-                );
-            }
+        if !opt_output.status.success() {
+            tracing::error!(
+                "opt returned with Exit status: {}\n stdout: {}\n stderr: {}",
+                opt_output.status,
+                String::from_utf8(opt_output.stdout).unwrap(),
+                String::from_utf8(opt_output.stderr).unwrap(),
+            );
+            anyhow::bail!("opt failed optimize bitcode: {}", self.link_path.display());
+        };
 
-            let symbol_string = String::from_utf8(nm_output.stdout).unwrap();
+        if !inline {
+            return Ok(());
+        }
 
-            for symbol in symbol_string.split_whitespace() {
-                opt_cmd.arg(format!("--force-attribute={symbol}:alwaysinline"));
-            }
+        let nm_output = std::process::Command::new(format!("llvm-nm{}", self.version))
+            .arg("--format=just-symbols")
+            .arg("--defined-only")
+            .arg(&self.opt_path)
+            .output()
+            .unwrap();
+
+        if !nm_output.status.success() {
+            tracing::error!(
+                "llvm-nm returned with Exit status: {}\n stdout: {}\n stderr: {}",
+                nm_output.status,
+                String::from_utf8(nm_output.stdout).unwrap(),
+                String::from_utf8(nm_output.stderr).unwrap(),
+            );
+            anyhow::bail!(
+                "llvm-nm failed to return symbols from file {}",
+                self.opt_path.display()
+            );
+        }
+        let symbol_string = String::from_utf8(nm_output.stdout).unwrap();
+
+        let passes =
+            format!("default<{optimization}>,forceattrs,always-inline,gvn,globalopt,dse,globalopt");
+
+        tracing::info!("inlining bitcode with passes: {}", passes);
+        let mut opt_cmd = std::process::Command::new(format!("opt{}", self.version));
+        opt_cmd
+            .arg(&self.opt_path)
+            .arg("-o")
+            .arg(&self.opt_path)
+            .arg(format!("--passes={passes}"));
+
+        for symbol in symbol_string.split_whitespace() {
+            opt_cmd.arg(format!("--force-attribute={symbol}:alwaysinline"));
         }
 
         let opt_output = opt_cmd.output().unwrap();
@@ -290,7 +310,7 @@ impl Session {
                 String::from_utf8(opt_output.stdout).unwrap(),
                 String::from_utf8(opt_output.stderr).unwrap(),
             );
-            anyhow::bail!("opt failed optimize bitcode: {}", self.link_path.display());
+            anyhow::bail!("opt failed inline bitcode: {}", self.opt_path.display());
         };
 
         Ok(())
