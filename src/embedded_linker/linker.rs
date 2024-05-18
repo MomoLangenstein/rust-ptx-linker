@@ -31,7 +31,38 @@ impl Session {
         let opt_path = out_path.with_extension("optimized.o");
         let sym_path = out_path.with_extension("symbols.txt");
 
-        let version = if let Ok(version_output) = std::process::Command::new("llvm-link")
+        let version_output = std::process::Command::new("rustc")
+            .arg("--version")
+            .arg("--verbose")
+            .output()?;
+        let version_output = String::from_utf8(version_output.stdout).unwrap();
+
+        let mut llvm_version = None;
+
+        for line in version_output.lines() {
+            if let Some(version) = str::strip_prefix(line, "LLVM version: ") {
+                if let Some((version, _)) = version.split_once('.') {
+                    llvm_version = Some(String::from(version));
+                    break;
+                }
+            }
+        }
+
+        let Some(llvm_version) = llvm_version else {
+            anyhow::bail!("unable to determine LLVM version from:\n{version_output}");
+        };
+
+        let version = if let Ok(version_output) = std::process::Command::new(format!("llvm-link-{llvm_version}"))
+            .arg("--version")
+            .output()
+        {
+            tracing::info!(
+                "using specific llvm-link-{llvm_version} with version:\n{}",
+                String::from_utf8(version_output.stdout).unwrap(),
+            );
+
+            format!("-{llvm_version}")
+        } else if let Ok(version_output) = std::process::Command::new("llvm-link")
             .arg("--version")
             .output()
         {
@@ -42,37 +73,8 @@ impl Session {
 
             String::new()
         } else {
-            let version_output = std::process::Command::new("rustc")
-                .arg("--version")
-                .arg("--verbose")
-                .output()?;
-            let version_output = String::from_utf8(version_output.stdout).unwrap();
-
-            let mut llvm_version = None;
-
-            for line in version_output.lines() {
-                if let Some(version) = str::strip_prefix(line, "LLVM version: ") {
-                    if let Some((version, _)) = version.split_once('.') {
-                        llvm_version = Some(String::from(version));
-                        break;
-                    }
-                }
-            }
-
-            let Some(llvm_version) = llvm_version else {
-                anyhow::bail!("unable to determine LLVM version from:\n{version_output}");
-            };
-
-            let version_output =
-                std::process::Command::new(format!("llvm-link-{llvm_version}")).output()?;
-
-            tracing::info!(
-                "using specific llvm-link-{llvm_version} with version:\n{}",
-                String::from_utf8(version_output.stdout).unwrap(),
-            );
-
-            format!("-{llvm_version}")
-        };
+            anyhow::bail!("unable to determine find either llvm-link-{llvm_version} or llvm-link");
+        }
 
         Ok(Session {
             target,
