@@ -74,7 +74,7 @@ impl Session {
             String::new()
         } else {
             anyhow::bail!("unable to determine find either llvm-link-{llvm_version} or llvm-link");
-        }
+        };
 
         Ok(Session {
             target,
