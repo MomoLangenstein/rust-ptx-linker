@@ -289,7 +289,7 @@ impl Session {
         let symbol_string = String::from_utf8(nm_output.stdout).unwrap();
 
         let passes =
-            format!("default<{optimization}>,forceattrs,always-inline,gvn,globalopt,dse,globalopt");
+            format!("default<{optimization}>,forceattrs,always-inline,gvn,globalopt,mem2reg,dse,globalopt");
 
         tracing::info!("inlining bitcode with passes: {}", passes);
         let mut opt_cmd = std::process::Command::new(format!("opt{}", self.version));
